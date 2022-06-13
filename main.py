@@ -2,7 +2,6 @@ import discord
 import configparser
 import re
 
-# https://discord.com/api/oauth2/authorize?client_id=864098900687192075&permissions=67584&scope=bot
 
 intents = discord.Intents.default()
 intents.members = True
