@@ -1,6 +1,8 @@
 import discord
 import configparser
 import re
+
+import pymongo.errors
 from pymongo import MongoClient
 from bson import ObjectId
 import datetime
@@ -20,7 +22,6 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    # print(message.author.id)
     if message.author == client.user:
         return
 
@@ -28,22 +29,33 @@ async def on_message(message):
         await message.channel.send("Help not available!")
 
     if re.match(r"Wordle [0-9]+ [1-6|X]/6", message.content) is not None:
-        # extract the Wordle number from message
         wordle = message.content.splitlines()[0].split(" ")[1]
-        # extract the score from message
         score = message.content.splitlines()[0].split(" ")[2][0]
 
-        collection.insert_one(
-            {
-                "_id": message.id,
-                "username": message.author.name,
-                "game_num": wordle,
-                "game_score": score,
-                "date": datetime.datetime.now()
-            }
-        )
+        if collection.find_one({
+            "username": message.author.name,
+            "game_num": wordle,
+            "game_score": score
+        }):
+            await message.channel.send(f"Can't add wordle score again for today!",
+                                       reference=message)
+            return
 
-        await message.channel.send("Record submitted!")
+        try:
+            collection.insert_one(
+                {
+                    "_id": message.id,
+                    "username": message.author.name,
+                    "game_num": wordle,
+                    "game_score": score,
+                    "date": datetime.datetime.now()
+                }
+            )
+        except pymongo.errors.DuplicateKeyError as e:
+            await message.channel.send("Duplication not allowed!", reference=message)
+            return
+
+        await message.channel.send("Record submitted!", reference=message)
 
 
 if __name__ == "__main__":
@@ -51,8 +63,5 @@ if __name__ == "__main__":
     cluster = MongoClient(config.get("section", "mongo_url"))
 
     collection = cluster["wordle"]["data"]
-
-    # s = collection.find_one({"_id": ObjectId("62a7d0a9a2559438d2907f0e")})
-    # print(s)
 
     client.run(config.get("section", "token"))
