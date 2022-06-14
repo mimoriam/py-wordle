@@ -22,11 +22,33 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    total = []
+    total_score = 0
+
     if message.author == client.user:
         return
 
-    if message.content == '!a help':
+    if message.content == '!w help':
         await message.channel.send("Help not available!")
+
+    if message.content == '!w score':
+        cursor = collection.find({
+            "username": message.author.name
+        })
+        for index, doc in enumerate(cursor):
+            total.append(
+                {
+                    "username": doc["username"],
+                    "game_score": doc["game_score"]
+                }
+            )
+
+        for dict_item in total:
+            for key in dict_item:
+                if dict_item[key].isdigit():
+                    total_score += int(dict_item[key])
+
+        await message.channel.send(f"Your total Wordle score is ``{total_score}``", reference=message)
 
     if re.match(r"Wordle [0-9]+ [1-6|X]/6", message.content) is not None:
         wordle = message.content.splitlines()[0].split(" ")[1]
@@ -38,7 +60,7 @@ async def on_message(message):
         }):
             await message.channel.send(f"Can't add wordle score again for today!",
                                        reference=message)
-            return
+            return True
 
         try:
             collection.insert_one(
@@ -52,7 +74,7 @@ async def on_message(message):
             )
         except pymongo.errors.DuplicateKeyError:
             await message.channel.send("Duplication not allowed!", reference=message)
-            return
+            return True
 
         await message.channel.send("Record submitted!", reference=message)
 
