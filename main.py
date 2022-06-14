@@ -3,6 +3,7 @@ import configparser
 import re
 from pymongo import MongoClient
 from bson import ObjectId
+import datetime
 
 intents = discord.Intents.default()
 intents.members = True
@@ -19,6 +20,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    # print(message.author.id)
     if message.author == client.user:
         return
 
@@ -31,7 +33,17 @@ async def on_message(message):
         # extract the score from message
         score = message.content.splitlines()[0].split(" ")[2][0]
 
-        await message.channel.send()
+        collection.insert_one(
+            {
+                "_id": message.id,
+                "username": message.author.name,
+                "game_num": wordle,
+                "game_score": score,
+                "date": datetime.datetime.now()
+            }
+        )
+
+        await message.channel.send("Record submitted!")
 
 
 if __name__ == "__main__":
@@ -40,7 +52,7 @@ if __name__ == "__main__":
 
     collection = cluster["wordle"]["data"]
 
-    s = collection.find_one({"_id": ObjectId("62a7d0a9a2559438d2907f0e")})
-    print(s)
+    # s = collection.find_one({"_id": ObjectId("62a7d0a9a2559438d2907f0e")})
+    # print(s)
 
     client.run(config.get("section", "token"))
