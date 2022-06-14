@@ -2,10 +2,10 @@ import discord
 import configparser
 import re
 
-import pymongo.errors
 from pymongo import MongoClient
-from bson import ObjectId
+import pymongo.errors
 import datetime
+from bson import ObjectId
 
 intents = discord.Intents.default()
 intents.members = True
@@ -35,7 +35,6 @@ async def on_message(message):
         if collection.find_one({
             "username": message.author.name,
             "game_num": wordle,
-            "game_score": score
         }):
             await message.channel.send(f"Can't add wordle score again for today!",
                                        reference=message)
@@ -51,7 +50,7 @@ async def on_message(message):
                     "date": datetime.datetime.now()
                 }
             )
-        except pymongo.errors.DuplicateKeyError as e:
+        except pymongo.errors.DuplicateKeyError:
             await message.channel.send("Duplication not allowed!", reference=message)
             return
 
@@ -60,8 +59,8 @@ async def on_message(message):
 
 if __name__ == "__main__":
     config.read(ini_path)
-    cluster = MongoClient(config.get("section", "mongo_url"))
 
+    cluster = MongoClient(config.get("section", "mongo_url"))
     collection = cluster["wordle"]["data"]
 
     client.run(config.get("section", "token"))
